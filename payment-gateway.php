@@ -189,4 +189,50 @@ class WC_Visanet_Payment_Gateway extends WC_Payment_Gateway
   
   
 }
+
+// ==========================================
+// COMPATIBILIDAD CON WOOCOMMERCE BLOCKS
+// ==========================================
+if ( class_exists( 'Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType' ) ) {
+    
+    class WC_Visanet_Blocks_Support extends Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType {
+        protected $name = 'visanet_gateway';
+
+        public function initialize() {
+            $this->settings = get_option( 'woocommerce_visanet_gateway_settings', [] );
+        }
+
+        public function is_active() {
+            return filter_var( $this->get_setting( 'enabled', false ), FILTER_VALIDATE_BOOLEAN );
+        }
+
+        public function get_payment_method_script_handles() {
+            wp_register_script(
+                'wc-visanet-blocks-integration',
+                plugins_url( 'js/wc-visanet-blocks.js', __FILE__ ),
+                array( 'wc-blocks-registry', 'wc-settings' ),
+                '1.0.0',
+                true
+            );
+            return array( 'wc-visanet-blocks-integration' );
+        }
+
+        public function get_payment_method_data() {
+            return array(
+                'title' => $this->get_setting( 'title' ),
+                'description' => $this->get_setting( 'method_description' ),
+                'supports' => array(
+                    'features' => array( 'products' ),
+                )
+            );
+        }
+    }
+
+    add_action(
+        'woocommerce_blocks_payment_method_type_registration',
+        function( Automattic\WooCommerce\Blocks\Payments\PaymentMethodRegistry $payment_method_registry ) {
+            $payment_method_registry->register( new WC_Visanet_Blocks_Support() );
+        }
+    );
+}
 ?>
